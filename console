@@ -1,0 +1,584 @@
+# XTouchMini Intégration with Raspberry Pi for domotic usage
+#!/bin/bash
+
+exec 3>>/root/log/console.log
+exec 4>>/root/log/consoleErr.log
+
+
+
+# Nombre de prises gérées 
+tplinkNumber=8
+
+tplinkIP=("192.168.1.137" "192.168.1.105" "192.168.1.111" "192.168.1.110" "192.168.1.138" "192.168.1.108" "192.168.1.112" "192.168.1.109")
+tplinkName=("Chauffage cuisine" "Chauffage Chambre" "Chauffage SDB" "Kodi salon" "Lampadaire salon" "Lampe buffet" "Lampe bureau" "TV chambre")
+tplinkON=("9A 00 7F" "9A 09 7F" "9A 0A 7F" "9A 0B 7F" "9A 0C 7F" "9A 0D 7F" "9A 0E 7F" "9A 0F 7F")
+tplinkOFF=("8A 00 00" "8A 09 00" "8A 0A 00" "8A 0B 00" "8A 0C 00" "8A 0D 00" "8A 0E 00" "8A 0F 00")
+HueBoutonRotatif=( "0"  "0"  "0"  "0"  "0"  "0"  "0"  "0")
+
+
+
+#(
+
+
+
+SendMidi()
+{
+ /usr/bin/amidi -p hw:1,0,0 --send-hex $1
+}
+
+
+
+AfficheEtatRotatifs()
+{
+ # Voyant d'état
+ /usr/bin/amidi -p hw:1,0,0 --send-hex "9A117F"
+
+ etat=`/usr/bin/hueadm -c /root/.hueadm.json lights -j` 
+ temp=`echo $etat | jq '."1".state.bri'` 
+
+ # Salon gauche enceinte
+ temp=`echo $etat | jq '."1".state.bri'`
+ if [ $temp > "0" ];
+ then
+    temp=`expr $temp / 9`
+ fi
+ HueBoutonRotatif[0]=$temp
+ bri=`printf 'BA01%x' $temp`
+ SendMidi $bri
+
+ # Salon gauche plante
+ temp=`echo $etat | jq '."2".state.bri'`
+ if [ $temp > "0" ];
+ then
+    temp=`expr $temp / 9`
+ fi
+ HueBoutonRotatif[1]=$temp
+ bri=`printf 'BA02%x' $temp`
+ SendMidi $bri
+
+ # Salon canapé droite
+ temp=`echo $etat | jq '."9".state.bri'`
+ if [ $temp > "0" ];
+ then
+    temp=`expr $temp / 9`
+ fi
+ HueBoutonRotatif[2]=$temp
+ bri=`printf 'BA03%x' $temp`
+ SendMidi $bri
+
+ # Salon Eiffel
+ temp=`echo $etat | jq '."4".state.bri'`
+ if [ $temp > "0" ];
+ then
+    temp=`expr $temp / 9`
+ fi
+ HueBoutonRotatif[3]=$temp
+ bri=`printf 'BA04%x' $temp`
+ SendMidi $bri
+
+ # Salon bureau
+ temp=`echo $etat | jq '."3".state.bri'`
+ if [ $temp > "0" ];
+ then
+    temp=`expr $temp / 9`
+ fi
+ HueBoutonRotatif[4]=$temp
+ bri=`printf 'BA05%x' $temp`
+ SendMidi $bri
+
+ # Salon aquarium
+ temp=`echo $etat | jq '."5".state.bri'`
+ if [ $temp > "0" ];
+ then
+    temp=`expr $temp / 9`
+ fi
+ HueBoutonRotatif[5]=$temp
+ bri=`printf 'BA06%x' $temp`
+ SendMidi $bri
+
+ # Chambre 1
+ temp=`echo $etat | jq '."8".state.bri'`
+ if [ $temp > "0" ]
+ then
+    temp=`expr $temp / 9`
+ fi
+ HueBoutonRotatif[7]=$lenaBri
+ lenaBri=`printf 'BA08%x' $temp`
+ SendMidi $lenaBri
+
+
+ # Salon
+ temp=`/usr/bin/hueadm -c /root/.hueadm.json group 1 | grep bri | cut -c10-12`
+ if [ $temp > "0" ];
+ then
+    temp=`expr $temp / 9`
+ fi
+ HueBoutonRotatif[6]=$salonBri
+ salonBri=`printf 'BA07%x' $temp`
+ SendMidi $salonBri
+
+ # Voyant d'état
+ /usr/bin/amidi -p hw:1,0,0 --send-hex "8A1100"
+}
+
+
+
+InitialisationBoutonsLumineux()
+{
+ for ((i=0;i<tplinkNumber;i++)); do
+    SendMidi "${tplinkOFF[i]}"
+    sleep 0.1
+ done
+
+ for ((i=0;i<tplinkNumber;i++)); do
+    SendMidi "${tplinkON[i]}"
+    sleep 0.1
+ done
+
+ for ((i=0;i<tplinkNumber;i++)); do
+    SendMidi "${tplinkOFF[i]}"
+    sleep 0.05
+ done
+
+ # Boutons du bas
+ SendMidi "9A 12 00"
+ SendMidi "9A 13 00"
+ SendMidi "9A 16 00"
+ SendMidi "9A 17 00"
+
+}
+
+
+
+VerifieVoyantSAM()
+{
+ echo "VerifieVoyantSAM"
+
+ # Lumière salle à manger si Lampadaire+Lampe+Lampe buffet allumés
+ result=`/usr/bin/python /root/tplink.py -t ${tplinkIP[4]} -c info`
+ if [ $result = "1" ]
+ then
+    echo "1"
+    result=`/usr/bin/python /root/tplink.py -t ${tplinkIP[5]} -c info`
+    if [ $result = "1" ]
+    then
+       echo "2"
+       result=`/usr/bin/python /root/tplink.py -t ${tplinkIP[6]} -c info`
+       if [ $result = "1" ]
+       then
+          echo "3"
+          SendMidi "9A 13 7F"
+       else
+          SendMidi "8A 13 00"
+       fi
+    else
+       SendMidi "8A 13 00"
+    fi
+ else
+    SendMidi "8A 13 00"
+ fi
+}
+
+
+
+AfficheEtatBoutonsLumineux()
+{
+ # Récupération et affichage des états
+ /usr/bin/amidi -p hw:1,0,0 --send-hex "9A117F"
+ for ((i=0;i<tplinkNumber;i++)); do
+    result=`/usr/bin/python /root/tplink.py -t ${tplinkIP[i]} -c info`
+    if [ $result = "1" ]
+    then
+       /usr/bin/amidi -p hw:1,0,0 --send-hex "${tplinkON[i]}"
+    else
+       /usr/bin/amidi -p hw:1,0,0 --send-hex "${tplinkOFF[i]}"
+    fi
+    #echo $result
+ done
+
+ # Lumière salle à manger si Lampadaire+Lampe+Lampe buffet allumés
+ VerifieVoyantSAM 
+
+ # Lumière salon
+ result=`/usr/bin/hueadm -c /root/.hueadm.json group 1 | grep all_on | cut -c13-17`
+ if [ $result = "true" ];
+ then
+    SendMidi "9A 16 7F"
+ else
+    SendMidi "9A 16 00"
+ fi
+
+ # Lumière chambre
+ result=`/usr/bin/hueadm -c /root/.hueadm.json light 8 | grep " on:" | cut -c9-13`
+ if [ $result = "true" ];
+ then
+    SendMidi "9A 17 7F"
+ else
+    SendMidi "9A 17 00"
+ fi
+
+ # Lumière chambre parents
+ result=`/usr/bin/hueadm -c /root/.hueadm.json light 7 | grep " on:" | cut -c9-13`
+ if [ $result = "true" ];
+ then
+    SendMidi "9A 12 7F"
+ else
+    SendMidi "9A 12 00"
+ fi
+ 
+ # Eteint voyant d'état   
+ /usr/bin/amidi -p hw:1,0,0 --send-hex "8A1100"
+}
+
+
+FlashBoutonLumineux()
+{
+ for ((i=0;i<3;i++)); do
+    SendMidi "${tplinkOFF[$1]}"
+    sleep 0.5
+    SendMidi "${tplinkON[$1]}"
+    sleep 0.5
+ done
+ SendMidi "${tplinkOFF[$1]}"
+}
+
+#FlashBoutonLumineux "0"
+#exit
+
+
+# 													#
+#						  D  E  B  U  T 					#
+#													#
+
+
+if [ "$1" = "REFRESH" ]
+then
+   heure=`date +%H`
+   if [[ $heure -gt "23" || $heure -lt "7" ]]
+   then
+      echo "Pas la bonne heure pour un refresh"
+      exit 1
+   fi 
+   AfficheEtatBoutonsLumineux	
+   echo "Cron refresh"
+   exit 1
+fi
+
+if [ "$1" = "REFRESHALL" ]
+then
+   AfficheEtatBoutonsLumineux
+   AfficheEtatRotatifs
+   echo "Cron refreshall"
+   exit 1
+fi
+
+
+InitialisationBoutonsLumineux
+AfficheEtatBoutonsLumineux
+AfficheEtatRotatifs
+
+
+echo "Ok, ça tourne!"
+
+lastMidiRead=`tail -n 1 /root/midiInput` 
+while true
+do
+   midiRead=`tail -n 1 /root/midiInput | cut -c1-8` 
+   if [ "$midiRead" = "$lastMidiRead" ];
+   then
+      continue
+   fi
+
+   lastMidiRead=$midiRead
+   echo "Read:$midiRead  ,Last:$lastMidiRead"
+
+   #for ((i=0;i<8;i++)); do
+   #   echo -n "$i:${HueBoutonRotatif[$i]} / "
+   #done
+   #echo " "
+
+   #
+   # Push bouton rotatif
+   #
+
+   # Gauche HP
+   if [[ $midiRead == "8A 18 00" ]];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json light 1 on bri=${HueBoutonRotatif[0]}
+      echo "Reglage salon gauche enceinte: bri=${HueBoutonRotatif[0]}"
+      SendMidi "9A 16 7F"
+   fi
+   # Gauche plante
+   if [[ $midiRead == "8A 01 00" ]];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json light 2 on bri=${HueBoutonRotatif[1]}
+      echo "Reglage salon plante: bri=${HueBoutonRotatif[1]}"
+      SendMidi "9A 16 7F"
+   fi
+   # Mid canapé
+   if [[ $midiRead == "8A 02 00" ]];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json light 9 on bri=${HueBoutonRotatif[2]}
+      echo "Reglage canapé: bri=${HueBoutonRotatif[2]}"
+      SendMidi "9A 16 7F"
+   fi
+   # Mid Eiffel
+   if [[ $midiRead == "8A 03 00" ]];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json light 4 on bri=${HueBoutonRotatif[3]}
+      echo "Reglage salon plante: bri=${HueBoutonRotatif[3]}"
+      SendMidi "9A 16 7F"
+   fi
+   # Droite PC
+   if [[ $midiRead == "8A 04 00" ]];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json light 3 on bri=${HueBoutonRotatif[4]}
+      echo "Reglage salon plante: bri=${HueBoutonRotatif[4]}"
+      SendMidi "9A 16 7F"
+   fi
+   # Droite aquarium
+   if [[ $midiRead == "8A 05 00" ]];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json light 5 on bri=${HueBoutonRotatif[5]}
+      echo "Reglage salon plante: bri=${HueBoutonRotatif[5]}"
+      SendMidi "9A 16 7F"
+   fi
+
+   # Salon
+   if [[ $midiRead == "8A 06 00" ]];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json group 1 on bri=${HueBoutonRotatif[6]}
+      echo "Allume salon: bri=${HueBoutonRotatif[6]}"
+      SendMidi "9A 16 7F"
+      AfficheEtatRotatifs	
+   fi
+
+   # Chambre
+   if [[ $midiRead == "8A 07 00" ]];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json light 8 on bri=${HueBoutonRotatif[7]}
+      echo "Allume chambre : bri=${HueBoutonRotatif[7]}"
+      SendMidi "9A 17 7F"
+   fi
+
+
+   #
+   # Un des boutons rotatifs ?
+   #
+
+   # Gauche HP
+   if [[ $midiRead == *"BA 01"* ]];
+   then
+      temp=`echo $midiRead | cut -c7-8`
+      #var=$((`echo $(( 16#$temp ))`*2))     *2 si 127 max
+      var=$((`echo $(( 16#$temp ))`*9))
+      HueBoutonRotatif[0]=$var
+      #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[0]}"
+   fi
+   # Gauche plante
+   if [[ $midiRead == *"BA 02"* ]];
+   then
+      temp=`echo $midiRead | cut -c7-8`
+      var=$((`echo $(( 16#$temp ))`*9))
+      HueBoutonRotatif[1]=$var
+      #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[1]}"
+   fi
+   # Mid canapé
+   if [[ $midiRead == *"BA 03"* ]];
+   then
+      temp=`echo $midiRead | cut -c7-8`
+      var=$((`echo $(( 16#$temp ))`*9))
+      HueBoutonRotatif[2]=$var
+      #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[2]}"
+   fi
+   # Mid Eiffel
+   if [[ $midiRead == *"BA 04"* ]];
+   then
+      temp=`echo $midiRead | cut -c7-8`
+      var=$((`echo $(( 16#$temp ))`*9))
+      HueBoutonRotatif[3]=$var
+      #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[3]}"
+   fi
+   # Droite PC
+   if [[ $midiRead == *"BA 05"* ]];
+   then
+      temp=`echo $midiRead | cut -c7-8`
+      var=$((`echo $(( 16#$temp ))`*9))
+      HueBoutonRotatif[4]=$var
+      #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[4]}"
+   fi
+   # Droite aquarium
+   if [[ $midiRead == *"BA 06"* ]];
+   then
+      temp=`echo $midiRead | cut -c7-8`
+      var=$((`echo $(( 16#$temp ))`*9))
+      HueBoutonRotatif[5]=$var
+      #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[5]}"
+   fi
+
+   # Salon
+   if [[ $midiRead == *"BA 07"* ]];
+   then
+      temp=`echo $midiRead | cut -c7-8` 
+      var=$((`echo $(( 16#$temp ))`*9))
+      HueBoutonRotatif[6]=$var
+      #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[6]}"
+   fi
+   # Chambre 
+   if [[ $midiRead == *"BA 08"* ]];
+   then
+      temp=`echo $midiRead | cut -c7-8`
+      var=$((`echo $(( 16#$temp ))`*9))
+      HueBoutonRotatif[7]=$var
+      #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[7]}"
+   fi
+
+   #
+   # Fin traitement des boutons rotatifs, début des boutons poussoirs
+   #
+
+   # Refresh ?
+   if [ "$midiRead" = "8A 10 00" ];
+   then
+      AfficheEtatBoutonsLumineux	
+      AfficheEtatRotatifs	
+      echo "Refresh OK"
+      continue
+   fi   
+
+   # ON ?
+   for ((i=0;i<tplinkNumber;i++)); do 
+      if [ "$midiRead" = "${tplinkON[i]}" ];
+      then
+         echo "Allume ${tplinkName[i]}"
+	 /usr/bin/python /root/tplink.py -t ${tplinkIP[i]} -c on    
+
+         sleep 0.5   
+	 # Vérifie si la commande a bien été executée
+         r=`/usr/bin/python /root/tplink.py -t ${tplinkIP[i]} -c info`
+	 echo "Result: $r"
+         if [ $r = "0" ]
+         then
+	    FlashBoutonLumineux $i
+            break
+         fi
+
+	 if [ $i = "4" ] || [ $i = "5" ] || [ $i = "6" ]
+	 then
+	    VerifieVoyantSAM
+	 fi
+
+         continue	
+      fi
+   done
+
+   # OFF ?
+   for ((i=0;i<tplinkNumber;i++)); do
+      if [ "$midiRead" = "${tplinkOFF[i]}" ];
+      then
+         echo "Eteint ${tplinkName[i]}"
+	 /usr/bin/python /root/tplink.py -t ${tplinkIP[i]} -c off
+
+         sleep 0.3
+         # Vérifie si la commande a bien été executée
+         r=`/usr/bin/python /root/tplink.py -t ${tplinkIP[i]} -c info`
+	 echo "Result: $r"
+         if [ $r = "1" ]
+         then
+            FlashBoutonLumineux $i
+            SendMidi "${tplinkON[i]}"
+            break
+         fi
+
+         if [ $i = "4" ] || [ $i = "5" ] || [ $i = "6" ]
+         then
+            VerifieVoyantSAM
+         fi
+
+         continue
+      fi
+   done
+
+   #
+   # Bandeau du bas
+   # 
+
+   # Salle à manger
+   if [ "$midiRead" = "9A 13 7F" ];
+   then
+      /usr/bin/python /root/tplink.py -t ${tplinkIP[4]} -c on
+      /usr/bin/python /root/tplink.py -t ${tplinkIP[5]} -c on
+      /usr/bin/python /root/tplink.py -t ${tplinkIP[6]} -c on
+      SendMidi "9A 0C 7F"
+      SendMidi "9A 0D 7F"
+      SendMidi "9A 0E 7F"
+      continue
+   fi
+   if [ "$midiRead" = "8A 13 00" ];
+   then
+      /usr/bin/python /root/tplink.py -t ${tplinkIP[4]} -c off
+      /usr/bin/python /root/tplink.py -t ${tplinkIP[5]} -c off
+      /usr/bin/python /root/tplink.py -t ${tplinkIP[6]} -c off
+      SendMidi "8A 0C 00"
+      SendMidi "8A 0D 00"
+      SendMidi "8A 0E 00"
+      continue
+   fi
+
+   # Salon
+   if [ "$midiRead" = "9A 16 7F" ];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json group 1 on bri=${HueBoutonRotatif[6]}
+      AfficheEtatRotatifs
+      continue
+   fi
+   if [ "$midiRead" = "8A 16 00" ];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json group 1 off
+      continue
+   fi   
+   # Salon rose 
+   if [ "$midiRead" = "8A 15 00" ];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json group 1 magenta bri=${HueBoutonRotatif[6]}
+      SendMidi "9A 16 7F"
+      AfficheEtatRotatifs
+   fi
+   # Salon blanc
+   if [ "$midiRead" = "8A 14 00" ];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json group 1 white bri=${HueBoutonRotatif[6]}
+      SendMidi "9A 16 7F"
+      AfficheEtatRotatifs
+      continue
+   fi
+
+   # Chambre
+   if [ "$midiRead" = "9A 17 7F" ];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json light 8 on bri=${HueBoutonRotatif[7]}
+      AfficheEtatRotatifs
+      continue
+   fi
+   if [ "$midiRead" = "8A 17 00" ];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json light 8 off
+      continue
+   fi
+
+   # Chambre parents
+   if [ "$midiRead" = "9A 12 7F" ];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json light 7 on
+      continue
+   fi
+   if [ "$midiRead" = "8A 12 00" ];
+   then
+      /usr/bin/hueadm -c /root/.hueadm.json light 7 off
+      continue
+   fi
+
+done
+
+#) 1>&3 2>&4
+
