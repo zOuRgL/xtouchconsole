@@ -1,4 +1,4 @@
-# XTouchMini Intégration with Raspberry Pi for domotic usage
+# XTouchMini Intégration with Raspberry Pi for domotic usage - Up
 #!/bin/bash
 
 exec 3>>/root/log/console.log
