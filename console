@@ -1,9 +1,5 @@
-# XTouchMini Intégration with Raspberry Pi for domotic usage - CORRECTION PROCHAINE
+# XTouchMini Intégration with Raspberry Pi for domotic usage
 #!/bin/bash
-
-exec 3>>/root/log/console.log
-exec 4>>/root/log/consoleErr.log
-
 
 
 # Nombre de prises gérées 
@@ -14,11 +10,6 @@ tplinkName=("Chauffage cuisine" "Chauffage Chambre" "Chauffage SDB" "Kodi salon"
 tplinkON=("9A 00 7F" "9A 09 7F" "9A 0A 7F" "9A 0B 7F" "9A 0C 7F" "9A 0D 7F" "9A 0E 7F" "9A 0F 7F")
 tplinkOFF=("8A 00 00" "8A 09 00" "8A 0A 00" "8A 0B 00" "8A 0C 00" "8A 0D 00" "8A 0E 00" "8A 0F 00")
 HueBoutonRotatif=( "0"  "0"  "0"  "0"  "0"  "0"  "0"  "0")
-
-
-
-#(
-
 
 
 SendMidi()
@@ -278,7 +269,7 @@ AfficheEtatBoutonsLumineux
 AfficheEtatRotatifs
 
 
-echo "Ok, ça tourne!"
+echo "Ok, it's running!"
 
 lastMidiRead=`tail -n 1 /root/midiInput` 
 while true
@@ -291,11 +282,6 @@ do
 
    lastMidiRead=$midiRead
    echo "Read:$midiRead  ,Last:$lastMidiRead"
-
-   #for ((i=0;i<8;i++)); do
-   #   echo -n "$i:${HueBoutonRotatif[$i]} / "
-   #done
-   #echo " "
 
    #
    # Push bouton rotatif
@@ -579,6 +565,4 @@ do
    fi
 
 done
-
-#) 1>&3 2>&4
 
