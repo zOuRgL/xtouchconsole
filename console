@@ -6,7 +6,7 @@
 tplinkNumber=8
 
 tplinkIP=("192.168.1.137" "192.168.1.105" "192.168.1.111" "192.168.1.110" "192.168.1.138" "192.168.1.108" "192.168.1.112" "192.168.1.109")
-tplinkName=("Chauffage cuisine" "Chauffage Chambre" "Chauffage SDB" "Kodi salon" "Lampadaire salon" "Lampe buffet" "Lampe bureau" "TV chambre")
+tplinkName=("Chauffage cuisine" "Chauffage Chambre" "Chauffage SDB" "MediaCenter salon" "Lampadaire salon" "Lampe salon" "Lampe bureau" "TV chambre")
 tplinkON=("9A 00 7F" "9A 09 7F" "9A 0A 7F" "9A 0B 7F" "9A 0C 7F" "9A 0D 7F" "9A 0E 7F" "9A 0F 7F")
 tplinkOFF=("8A 00 00" "8A 09 00" "8A 0A 00" "8A 0B 00" "8A 0C 00" "8A 0D 00" "8A 0E 00" "8A 0F 00")
 HueBoutonRotatif=( "0"  "0"  "0"  "0"  "0"  "0"  "0"  "0")
