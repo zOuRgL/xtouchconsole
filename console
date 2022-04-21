@@ -145,7 +145,6 @@ VerifieVoyantSAM()
 {
  echo "VerifieVoyantSAM"
 
- # Lumière salle à manger si Lampadaire+Lampe+Lampe buffet allumés
  result=`/usr/bin/python /root/tplink.py -t ${tplinkIP[4]} -c info`
  if [ $result = "1" ]
  then
@@ -187,7 +186,6 @@ AfficheEtatBoutonsLumineux()
     #echo $result
  done
 
- # Lumière salle à manger si Lampadaire+Lampe+Lampe buffet allumés
  VerifieVoyantSAM 
 
  # Lumière salon
@@ -208,7 +206,7 @@ AfficheEtatBoutonsLumineux()
     SendMidi "9A 17 00"
  fi
 
- # Lumière chambre parents
+ # Lumière chambre 2
  result=`/usr/bin/hueadm -c /root/.hueadm.json light 7 | grep " on:" | cut -c9-13`
  if [ $result = "true" ];
  then
@@ -287,42 +285,36 @@ do
    # Push bouton rotatif
    #
 
-   # Gauche HP
    if [[ $midiRead == "8A 18 00" ]];
    then
       /usr/bin/hueadm -c /root/.hueadm.json light 1 on bri=${HueBoutonRotatif[0]}
       echo "Reglage salon gauche enceinte: bri=${HueBoutonRotatif[0]}"
       SendMidi "9A 16 7F"
    fi
-   # Gauche plante
    if [[ $midiRead == "8A 01 00" ]];
    then
       /usr/bin/hueadm -c /root/.hueadm.json light 2 on bri=${HueBoutonRotatif[1]}
       echo "Reglage salon plante: bri=${HueBoutonRotatif[1]}"
       SendMidi "9A 16 7F"
    fi
-   # Mid canapé
    if [[ $midiRead == "8A 02 00" ]];
    then
       /usr/bin/hueadm -c /root/.hueadm.json light 9 on bri=${HueBoutonRotatif[2]}
       echo "Reglage canapé: bri=${HueBoutonRotatif[2]}"
       SendMidi "9A 16 7F"
    fi
-   # Mid Eiffel
    if [[ $midiRead == "8A 03 00" ]];
    then
       /usr/bin/hueadm -c /root/.hueadm.json light 4 on bri=${HueBoutonRotatif[3]}
       echo "Reglage salon plante: bri=${HueBoutonRotatif[3]}"
       SendMidi "9A 16 7F"
    fi
-   # Droite PC
    if [[ $midiRead == "8A 04 00" ]];
    then
       /usr/bin/hueadm -c /root/.hueadm.json light 3 on bri=${HueBoutonRotatif[4]}
       echo "Reglage salon plante: bri=${HueBoutonRotatif[4]}"
       SendMidi "9A 16 7F"
    fi
-   # Droite aquarium
    if [[ $midiRead == "8A 05 00" ]];
    then
       /usr/bin/hueadm -c /root/.hueadm.json light 5 on bri=${HueBoutonRotatif[5]}
@@ -330,7 +322,6 @@ do
       SendMidi "9A 16 7F"
    fi
 
-   # Salon
    if [[ $midiRead == "8A 06 00" ]];
    then
       /usr/bin/hueadm -c /root/.hueadm.json group 1 on bri=${HueBoutonRotatif[6]}
@@ -339,7 +330,6 @@ do
       AfficheEtatRotatifs	
    fi
 
-   # Chambre
    if [[ $midiRead == "8A 07 00" ]];
    then
       /usr/bin/hueadm -c /root/.hueadm.json light 8 on bri=${HueBoutonRotatif[7]}
@@ -352,7 +342,6 @@ do
    # Un des boutons rotatifs ?
    #
 
-   # Gauche HP
    if [[ $midiRead == *"BA 01"* ]];
    then
       temp=`echo $midiRead | cut -c7-8`
@@ -361,7 +350,6 @@ do
       HueBoutonRotatif[0]=$var
       #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[0]}"
    fi
-   # Gauche plante
    if [[ $midiRead == *"BA 02"* ]];
    then
       temp=`echo $midiRead | cut -c7-8`
@@ -369,7 +357,6 @@ do
       HueBoutonRotatif[1]=$var
       #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[1]}"
    fi
-   # Mid canapé
    if [[ $midiRead == *"BA 03"* ]];
    then
       temp=`echo $midiRead | cut -c7-8`
@@ -377,7 +364,6 @@ do
       HueBoutonRotatif[2]=$var
       #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[2]}"
    fi
-   # Mid Eiffel
    if [[ $midiRead == *"BA 04"* ]];
    then
       temp=`echo $midiRead | cut -c7-8`
@@ -385,7 +371,6 @@ do
       HueBoutonRotatif[3]=$var
       #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[3]}"
    fi
-   # Droite PC
    if [[ $midiRead == *"BA 05"* ]];
    then
       temp=`echo $midiRead | cut -c7-8`
@@ -393,7 +378,6 @@ do
       HueBoutonRotatif[4]=$var
       #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[4]}"
    fi
-   # Droite aquarium
    if [[ $midiRead == *"BA 06"* ]];
    then
       temp=`echo $midiRead | cut -c7-8`
@@ -402,7 +386,6 @@ do
       #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[5]}"
    fi
 
-   # Salon
    if [[ $midiRead == *"BA 07"* ]];
    then
       temp=`echo $midiRead | cut -c7-8` 
@@ -410,7 +393,6 @@ do
       HueBoutonRotatif[6]=$var
       #echo "temp:$temp, var:$var, bt:${HueBoutonRotatif[6]}"
    fi
-   # Chambre 
    if [[ $midiRead == *"BA 08"* ]];
    then
       temp=`echo $midiRead | cut -c7-8`
@@ -489,7 +471,6 @@ do
    # Bandeau du bas
    # 
 
-   # Salle à manger
    if [ "$midiRead" = "9A 13 7F" ];
    then
       /usr/bin/python /root/tplink.py -t ${tplinkIP[4]} -c on
@@ -511,7 +492,6 @@ do
       continue
    fi
 
-   # Salon
    if [ "$midiRead" = "9A 16 7F" ];
    then
       /usr/bin/hueadm -c /root/.hueadm.json group 1 on bri=${HueBoutonRotatif[6]}
@@ -523,14 +503,12 @@ do
       /usr/bin/hueadm -c /root/.hueadm.json group 1 off
       continue
    fi   
-   # Salon rose 
    if [ "$midiRead" = "8A 15 00" ];
    then
       /usr/bin/hueadm -c /root/.hueadm.json group 1 magenta bri=${HueBoutonRotatif[6]}
       SendMidi "9A 16 7F"
       AfficheEtatRotatifs
    fi
-   # Salon blanc
    if [ "$midiRead" = "8A 14 00" ];
    then
       /usr/bin/hueadm -c /root/.hueadm.json group 1 white bri=${HueBoutonRotatif[6]}
@@ -539,7 +517,6 @@ do
       continue
    fi
 
-   # Chambre
    if [ "$midiRead" = "9A 17 7F" ];
    then
       /usr/bin/hueadm -c /root/.hueadm.json light 8 on bri=${HueBoutonRotatif[7]}
@@ -552,7 +529,6 @@ do
       continue
    fi
 
-   # Chambre parents
    if [ "$midiRead" = "9A 12 7F" ];
    then
       /usr/bin/hueadm -c /root/.hueadm.json light 7 on
